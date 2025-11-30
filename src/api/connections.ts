@@ -51,11 +51,11 @@ function appendData(s: string) {
   let o: ConnectionsData;
   try {
     o = JSON.parse(s);
-    o.connections.forEach(conn => {
-      let m = conn.metadata;
+    o.connections.forEach((conn) => {
+      const m = conn.metadata;
       if (m.process == null) {
         if (m.processPath != null) {
-          m.process = m.processPath.replace(/^.*[/\\](.*)$/, "$1");
+          m.process = m.processPath.replace(/^.*[/\\](.*)$/, '$1');
         }
       }
     });
@@ -69,6 +69,7 @@ function appendData(s: string) {
 type UnsubscribeFn = () => void;
 
 let wsState: number;
+let wsRef: WebSocket | null = null;
 export function fetchData(
   apiConfig: ClashAPIConfig,
   listener: unknown,
@@ -84,6 +85,7 @@ export function fetchData(
   wsState = 1;
   const url = buildWebSocketURL(apiConfig, endpoint);
   const ws = new WebSocket(url);
+  wsRef = ws;
   ws.addEventListener('error', () => {
     wsState = 3;
     subscribers.forEach((s) => s.onClose());
@@ -107,6 +109,13 @@ function subscribe(subscriber: Subscriber): UnsubscribeFn {
   return function unsubscribe() {
     const idx = subscribers.indexOf(subscriber);
     subscribers.splice(idx, 1);
+    if (subscribers.length === 0 && wsRef) {
+      try {
+        wsRef.close();
+      } catch (_) {}
+      wsRef = null;
+      wsState = 3;
+    }
   };
 }
 

@@ -5,6 +5,13 @@ import { buildWebSocketURL, getURLAndInit } from '../misc/request-helper';
 const endpoint = '/traffic';
 const textDecoder = new TextDecoder('utf-8');
 
+// 1 OPEN
+// other value CLOSED
+// similar to ws readyState but not the same
+// https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
+let wsState: number;
+let wsRef: WebSocket | null = null;
+
 const Size = 150;
 
 const traffic = {
@@ -32,6 +39,13 @@ const traffic = {
     return () => {
       const idx = this.subscribers.indexOf(listener);
       this.subscribers.splice(idx, 1);
+      if (this.subscribers.length === 0 && typeof wsRef !== 'undefined' && wsRef) {
+        try {
+          wsRef.close();
+        } catch (_) {}
+        wsRef = null;
+        wsState = 3;
+      }
     };
   },
 };
@@ -71,16 +85,12 @@ function pump(reader: ReadableStreamDefaultReader) {
   });
 }
 
-// 1 OPEN
-// other value CLOSED
-// similar to ws readyState but not the same
-// https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
-let wsState: number;
 function fetchData(apiConfig: ClashAPIConfig) {
   if (fetched || wsState === 1) return traffic;
   wsState = 1;
   const url = buildWebSocketURL(apiConfig, endpoint);
   const ws = new WebSocket(url);
+  wsRef = ws;
   ws.addEventListener('error', function (_ev) {
     wsState = 3;
   });

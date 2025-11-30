@@ -23,6 +23,8 @@
   }
 
   background-color: var(--color-bg-proxy);
+  will-change: transform;
+  contain: layout paint;
 
   &.now {
     background-color: var(--color-focus-blue);

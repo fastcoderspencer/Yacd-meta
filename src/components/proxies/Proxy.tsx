@@ -4,7 +4,6 @@ import * as React from 'react';
 
 import { keyCodes } from '~/misc/keycode';
 import { getLatencyTestUrl } from '~/store/app';
-import { ProxyItem } from '~/store/types';
 
 import { getDelay, getProxies } from '../../store/proxies';
 import { connect } from '../StateProvider';
@@ -64,29 +63,30 @@ function getProxyDotBackgroundColor(
 type ProxyProps = {
   name: string;
   now?: boolean;
-  proxy: ProxyItem;
   latency: any;
   httpsLatencyTest: boolean;
   isSelectable?: boolean;
+  proxyType: string;
   udp: boolean;
+  xudp?: boolean;
   tfo: boolean;
+  latestDelay?: number;
   onClick?: (proxyName: string) => unknown;
 };
 
 function ProxySmallImpl({
   now,
   name,
-  proxy,
   latency,
   httpsLatencyTest,
   isSelectable,
   onClick,
+  latestDelay,
 }: ProxyProps) {
-  const delay = proxy.history[proxy.history.length - 1]?.delay;
-  const latencyNumber = latency?.number ?? delay;
+  const latencyNumber = latency?.number ?? latestDelay;
   const color = useMemo(
     () => getProxyDotBackgroundColor({ number: latencyNumber }, httpsLatencyTest),
-    [latencyNumber]
+    [latencyNumber, httpsLatencyTest]
   );
 
   const title = useMemo(() => {
@@ -156,17 +156,20 @@ function ProxyNameTooltip({ children, label, 'aria-label': ariaLabel }) {
 function ProxyImpl({
   now,
   name,
-  proxy,
   latency,
   httpsLatencyTest,
   isSelectable,
   onClick,
+  proxyType,
+  udp,
+  xudp,
+  tfo,
+  latestDelay,
 }: ProxyProps) {
-  const delay = proxy.history[proxy.history.length - 1]?.delay;
-  const latencyNumber = latency?.number ?? delay;
+  const latencyNumber = latency?.number ?? latestDelay;
   const color = useMemo(
     () => getLabelColor({ number: latencyNumber }, httpsLatencyTest),
-    [latencyNumber]
+    [latencyNumber, httpsLatencyTest]
   );
 
   const doSelect = React.useCallback(() => {
@@ -225,7 +228,7 @@ function ProxyImpl({
           <span>{name}</span>
         </ProxyNameTooltip>
         <span className={s0.proxyType} style={{ paddingLeft: 4, opacity: 0.6, color: '#51A8DD' }}>
-          {formatUdpType(proxy.udp, proxy.xudp)}
+          {formatUdpType(udp, xudp)}
         </span>
       </div>
 
@@ -235,10 +238,10 @@ function ProxyImpl({
             className={s0.proxyType}
             style={{ paddingRight: 4, opacity: 0.6, color: '#F596AA' }}
           >
-            {formatProxyType(proxy.type)}
+            {formatProxyType(proxyType)}
           </span>
 
-          {formatTfo(proxy.tfo)}
+          {formatTfo(tfo)}
         </div>
 
         {latencyNumber ? <ProxyLatency number={latencyNumber} color={color} /> : null}
@@ -251,13 +254,43 @@ const mapState = (s: any, { name }) => {
   const proxies = getProxies(s);
   const delay = getDelay(s);
   const latencyTestUrl = getLatencyTestUrl(s);
-  const proxy = proxies[name] || { name, history: [] };
+  const proxy = proxies[name] || {
+    name,
+    type: '',
+    udp: false,
+    xudp: false,
+    tfo: false,
+    history: [],
+  };
   return {
-    proxy: proxy,
     latency: delay[name],
     httpsLatencyTest: latencyTestUrl.startsWith('https://'),
+    proxyType: proxy.type,
+    udp: proxy.udp,
+    xudp: proxy.xudp,
+    tfo: proxy.tfo,
+    latestDelay: proxy.history[proxy.history.length - 1]?.delay,
   };
 };
 
-export const Proxy = connect(mapState)(ProxyImpl);
-export const ProxySmall = connect(mapState)(ProxySmallImpl);
+const areEqual = (prev: any, next: any) => {
+  const prevLatency = prev.latency?.number;
+  const nextLatency = next.latency?.number;
+  return (
+    prev.name === next.name &&
+    prev.now === next.now &&
+    prevLatency === nextLatency &&
+    prev.latestDelay === next.latestDelay &&
+    prev.proxyType === next.proxyType &&
+    prev.udp === next.udp &&
+    prev.xudp === next.xudp &&
+    prev.tfo === next.tfo &&
+    prev.isSelectable === next.isSelectable
+  );
+};
+
+const MemoProxyImpl = React.memo(ProxyImpl, areEqual);
+const MemoProxySmallImpl = React.memo(ProxySmallImpl, areEqual);
+
+export const Proxy = connect(mapState)(MemoProxyImpl);
+export const ProxySmall = connect(mapState)(MemoProxySmallImpl);

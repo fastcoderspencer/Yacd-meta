@@ -57,6 +57,9 @@ function Logs({ dispatch, logLevel, apiConfig, logs, logStreamingPaused }) {
   const appendLogInternal = useCallback((log) => dispatch(appendLog(log)), [dispatch]);
   useEffect(() => {
     fetchLogs({ ...apiConfig, logLevel }, appendLogInternal);
+    return () => {
+      stopLogs();
+    };
   }, [apiConfig, logLevel, appendLogInternal]);
   const [refLogsContainer, containerHeight] = useRemainingViewPortHeight();
   const { t } = useTranslation();

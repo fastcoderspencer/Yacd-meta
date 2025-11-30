@@ -72,41 +72,64 @@ function Proxies({
 
   const { t } = useTranslation();
 
+  const onRender = React.useCallback(
+    (
+      id: string,
+      phase: 'mount' | 'update' | 'unmount',
+      actualDuration: number,
+      baseDuration: number,
+      startTime: number,
+      commitTime: number
+    ) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Profiler]', id, phase, {
+          actualDuration,
+          baseDuration,
+          startTime,
+          commitTime,
+        });
+      }
+    },
+    []
+  );
+
   return (
     <>
       <BaseModal isOpen={isSettingsModalOpen} onRequestClose={closeSettingsModal}>
         <Settings />
       </BaseModal>
-      <div className={s0.topBar}>
-        <ContentHeader title={t('Proxies')} />
-        <div className={s0.topBarRight}>
-          <div className={s0.textFilterContainer}>
-            <TextFilter textAtom={proxyFilterText} placeholder={t('Search')} />
-          </div>
-          <Tooltip label={t('settings')}>
-            <Button kind="minimal" onClick={() => setIsSettingsModalOpen(true)}>
-              <Equalizer size={16} />
-            </Button>
-          </Tooltip>
-        </div>
-      </div>
-      <div>
-        {groupNames.map((groupName: string) => {
-          return (
-            <div className={s0.group} key={groupName}>
-              <ProxyGroup
-                name={groupName}
-                delay={delay}
-                apiConfig={apiConfig}
-                dispatch={dispatch}
-              />
+      <React.Profiler id="Proxies" onRender={onRender}>
+        <div className={s0.topBar}>
+          <ContentHeader title={t('Proxies')} />
+          <div className={s0.topBarRight}>
+            <div className={s0.textFilterContainer}>
+              <TextFilter textAtom={proxyFilterText} placeholder={t('Search')} />
             </div>
-          );
-        })}
-      </div>
-      <ProxyProviderList items={proxyProviders} />
-      <div style={{ height: 60 }} />
-      <ProxyPageFab dispatch={dispatch} apiConfig={apiConfig} proxyProviders={proxyProviders} />
+            <Tooltip label={t('settings')}>
+              <Button kind="minimal" onClick={() => setIsSettingsModalOpen(true)}>
+                <Equalizer size={16} />
+              </Button>
+            </Tooltip>
+          </div>
+        </div>
+        <div>
+          {groupNames.map((groupName: string) => {
+            return (
+              <div className={s0.group} key={groupName}>
+                <ProxyGroup
+                  name={groupName}
+                  delay={delay}
+                  apiConfig={apiConfig}
+                  dispatch={dispatch}
+                />
+              </div>
+            );
+          })}
+        </div>
+        <ProxyProviderList items={proxyProviders} />
+        <div style={{ height: 60 }} />
+        <ProxyPageFab dispatch={dispatch} apiConfig={apiConfig} proxyProviders={proxyProviders} />
+      </React.Profiler>
       <BaseModal isOpen={showModalClosePrevConns} onRequestClose={closeModalClosePrevConns}>
         <ClosePrevConns
           onClickPrimaryButton={() => closePrevConnsAndTheModal(apiConfig)}
