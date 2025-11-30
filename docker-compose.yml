@@ -1,0 +1,19 @@
+version: '3'
+services:
+  yacd:
+    # 指定构建上下文为当前目录
+    build: .
+    # 给构建出的镜像起个名字
+    image: yacd-meta
+    # 容器名称
+    container_name: yacd-meta
+    # 总是自动重启
+    restart: always
+    ports:
+      # 左边是你的Debian机器端口，右边是容器端口(不要改)
+      # 启动后访问 http://你的IP:8080
+      - "9090:80"
+    environment:
+      # 这是当你打开网页时，输入框里默认填充的 Clash 地址
+      # 建议填你 Clash 所在的局域网 IP，方便手机或其他电脑访问时也能连上
+      - YACD_DEFAULT_BACKEND=http://10.10.1.3:9090
